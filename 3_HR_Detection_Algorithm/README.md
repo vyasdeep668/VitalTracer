@@ -29,6 +29,8 @@ If you want to change number of samples(10000 By default) change below line
 ```python
 ppg_data = df[['time', channel]].iloc[:10000]
 ```
+Below Screenshot of terminal after running the script.</br>
+![Image1](Results/ScriptResult.png)
 
 # Results:
 Following results are of s3_sit.csv on channel 'pleth_5'(infrared wavelength PPG from the proximal phalanx)
