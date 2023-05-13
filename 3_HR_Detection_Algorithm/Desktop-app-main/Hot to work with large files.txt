@@ -1,0 +1,8 @@
+In order to use git large files storage (lfs) these steps should be taken:
+1- open terminal
+2- go to the folder in which git file is located
+3- initialize lfs:	git lfs install
+4- stage the large file (and other files) 	git add "filename"
+5- commit	git commit -m "detail"
+6- push to GitHub:	git push
+				
