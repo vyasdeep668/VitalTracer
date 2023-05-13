@@ -1,0 +1,15 @@
+User ID,001
+Date,2023-05-10
+Time,17:00:11
+Position of sensor,Side
+SYS pressure,120
+DIA pressure,80
+User state,
+Sample Rate,200
+Firmware version,2
+Device serial number,00-00-00-00-00-00-00-00-00-00-00-00
+IR filter config:,Low freq = 0.2,High freq = 15,Method = chebychev2,Enabled = 0
+Red filter config:,Low freq = 0.2,High freq = 15,Method = chebychev2,Enabled = 0
+ECG filter config:,Low freq = 0.2,High freq = 15,Method = chebychev2,Enabled = 0
+
+
