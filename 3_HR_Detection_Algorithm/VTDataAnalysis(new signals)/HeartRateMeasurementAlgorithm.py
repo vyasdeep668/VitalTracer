@@ -345,7 +345,7 @@ def measureHeartRate(ppg_data_csv_file_path, plot_save = False, no_skip_rows=0):
     #----------------------------------------------
     # Low-pass filter the raw signal to remove noise
     fs = 200  # Sampling frequency
-    fc =  5 # Cutoff frequency
+    fc =  4 # Cutoff frequency
     b, a = butter(2, 2 * fc / fs, 'low')
 
     ppg_data_raw = ppg_data[channel]
@@ -401,44 +401,47 @@ def measureHeartRate(ppg_data_csv_file_path, plot_save = False, no_skip_rows=0):
     ### Step6: Integrate the squared signal with a sliding window.
     #---------------------------------------------- 
     # Apply a moving average integration to smooth the signal
-    window_size = int(0.2 * fs)  # 20 window size
-    window = np.ones(window_size) / float(window_size)
-    ppg_data[channel] = np.convolve(ppg_data[channel], window, "same")
+    for i in range(2):
+        window_size = int(0.25 * fs)  #  window size
+        padded = np.pad(ppg_data[channel], (window_size, window_size), mode='edge')
+        window = np.ones(window_size) / float(window_size)
+        padded_convolved = np.convolve(padded, window, "same")
+        ppg_data[channel] = padded_convolved[window_size:-window_size]
+        ppg_data[channel] = np.convolve(ppg_data[channel], window, "same")
 
     ### Step7: Find the R-peaks in the integrated signal.
     #---------------------------------------------- 
     # Find peaks in the integrated signal
-    ppg_peaks, _ = find_peaks(ppg_data[channel], distance=0.2*fs)
+    ppg_peaks, _ = find_peaks(ppg_data[channel], distance=0.375*fs)
     # print("ppg_peaks:", ppg_peaks)
     # print("ppg_peaks size:", ppg_peaks.size)
 
     # Get a list of Amplitude of peaks
     ppg_peaks_amplitudes = [ppg_data[channel][i] for i in ppg_peaks]
 
-    max_peak_amplitude = max(ppg_peaks_amplitudes)
+    # max_peak_amplitude = max(ppg_peaks_amplitudes)
     # print("max_peak_amplitude:", max_peak_amplitude)
 
-    ppg_peaks_amplitudes_mean = np.mean(ppg_peaks_amplitudes)
-    ppg_peaks_amplitudes_std = np.std(ppg_peaks_amplitudes)
+    # ppg_peaks_amplitudes_mean = np.mean(ppg_peaks_amplitudes)
+    # ppg_peaks_amplitudes_std = np.std(ppg_peaks_amplitudes)
 
     # print(ppg_peaks_amplitudes_mean)
     # print(ppg_peaks_amplitudes_std)
 
-    threshold = ppg_peaks_amplitudes_mean + 0.25 * ppg_peaks_amplitudes_std  # set the threshold as 2 times the standard deviation above the mean
-    print(threshold)
-    PEAK_AMPLITUDE_THRESHOLD = threshold
-    # PEAK_AMPLITUDE_THRESHOLD = 0.4*max_peak_amplitude
+    # threshold = ppg_peaks_amplitudes_mean + 0.25 * ppg_peaks_amplitudes_std  # set the threshold as 2 times the standard deviation above the mean
+    # print(threshold)
+    # PEAK_AMPLITUDE_THRESHOLD = threshold
     # print("PEAK_AMPLITUDE_THRESHOLD:", PEAK_AMPLITUDE_THRESHOLD)
 
-    ppg_peaks_refined = []
-    for ppg_peak in ppg_peaks:
-        if(ppg_data[channel][ppg_peak] > PEAK_AMPLITUDE_THRESHOLD):
-            # Amplitude is big enough to be considered as a peak
-            ppg_peaks_refined.append(ppg_peak)
+    # ppg_peaks_refined = []
+    # for ppg_peak in ppg_peaks:
+    #     if(ppg_data[channel][ppg_peak] > PEAK_AMPLITUDE_THRESHOLD):
+    #         # Amplitude is big enough to be considered as a peak
+    #         ppg_peaks_refined.append(ppg_peak)
 
     # print(ppg_peaks_refined)
 
-    ppg_peaks_refined_amplitudes = [ppg_data[channel][i] for i in ppg_peaks_refined]
+    # ppg_peaks_refined_amplitudes = [ppg_data[channel][i] for i in ppg_peaks_refined]
 
     if plot_save:
         # Plot the diff_ppg data
@@ -447,7 +450,7 @@ def measureHeartRate(ppg_data_csv_file_path, plot_save = False, no_skip_rows=0):
         #plot old plot
         plt.plot(ppg_data.index, ppg_data[channel], linewidth=1)
         # plot red dots with detected peaks
-        plt.plot(ppg_peaks_refined, ppg_peaks_refined_amplitudes, 'ro')
+        plt.plot(ppg_peaks, ppg_peaks_amplitudes, 'ro')
         plt.title("Peak Detection")
         plt.xlabel('Time')
         plt.ylabel('Moving Average PPG Data')
@@ -472,7 +475,7 @@ def measureHeartRate(ppg_data_csv_file_path, plot_save = False, no_skip_rows=0):
     # print("MIN_NO_OF_PEAKS_THRESHOLD = ", MIN_NO_OF_PEAKS_THRESHOLD)
     # print("MAX_NO_OF_PEAKS_THRESHOLD = ", MAX_NO_OF_PEAKS_THRESHOLD)
 
-    TOTAL_PEAKS_DETECTED = len(ppg_peaks_refined)
+    TOTAL_PEAKS_DETECTED = len(ppg_peaks)
     # print("TOTAL_PEAKS_DETECTED = ", TOTAL_PEAKS_DETECTED)
 
     if (TOTAL_PEAKS_DETECTED < MIN_NO_OF_PEAKS_THRESHOLD) or (TOTAL_PEAKS_DETECTED > MAX_NO_OF_PEAKS_THRESHOLD) or (max_samples < 500):
@@ -480,13 +483,29 @@ def measureHeartRate(ppg_data_csv_file_path, plot_save = False, no_skip_rows=0):
         # print("Heart rate for file sample_ppg.csv: Error")
     else:
         # Compute the inter-beat interval (IBI) and heart rate (HR) from the peak locations
-        # ibi = np.diff(ppg_peaks_refined) / fs  # IBI in seconds
-        # hr = 60 / ibi  # HR in bpm
+        ibi = np.diff(ppg_peaks) / fs  # IBI in seconds
+        hr = 60*TOTAL_PEAKS_DETECTED/total_time_seconds
+        hrv = 60 / ibi  # HRV in bpm
+        hrv = np.concatenate([hrv, [hrv[-1]]])
 
-        # mean_hr = np.mean(hr)  
-        mean_hr = 60*TOTAL_PEAKS_DETECTED/total_time_seconds     
+        #HRV Plot
+        if plot_save:
+            # Plot the HRV data
+            plt.figure(figsize=(10,5))
+            plt.style.use('fivethirtyeight')
+            # plot red dots with detected peaks
+            plt.plot(ppg_peaks, hrv, linewidth=1)
+            plt.scatter(ppg_peaks, hrv, color='red')
+            plt.ylim(30, 160)  # Custom range: from 0 to 40
+            plt.title("HRV")
+            plt.xlabel('Peaks')
+            plt.ylabel('HR')
+            PATH = ppg_data_csv_file_path + '(HRV_Plot).png'
+            plt.savefig(PATH)
+
+     
         # Output the heart rate measurement
-        return mean_hr
+        return hr
         # print("Heart rate for file sample_ppg.csv:", np.mean(hr), "bpm") 
  
     
