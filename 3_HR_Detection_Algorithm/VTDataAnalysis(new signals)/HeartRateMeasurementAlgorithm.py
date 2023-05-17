@@ -338,8 +338,9 @@ def measureHeartRate(ppg_data_csv_file_path, plot_save = False, no_skip_rows=0):
 
     max_samples = ppg_data[channel].size
     # max_samples = 5000
-
-    ppg_data = ppg_data.iloc[:max_samples]
+    START_INDEX = 40
+    END_INDEX = max_samples
+    ppg_data = ppg_data.iloc[START_INDEX:END_INDEX]
 
     ### Step1: Filter the PPG signal with a bandpass filter.
     #----------------------------------------------
@@ -413,6 +414,7 @@ def measureHeartRate(ppg_data_csv_file_path, plot_save = False, no_skip_rows=0):
     #---------------------------------------------- 
     # Find peaks in the integrated signal
     ppg_peaks, _ = find_peaks(ppg_data[channel], distance=0.375*fs)
+    ppg_peaks = ppg_peaks + START_INDEX
     # print("ppg_peaks:", ppg_peaks)
     # print("ppg_peaks size:", ppg_peaks.size)
 
@@ -452,7 +454,7 @@ def measureHeartRate(ppg_data_csv_file_path, plot_save = False, no_skip_rows=0):
         # plot red dots with detected peaks
         plt.plot(ppg_peaks, ppg_peaks_amplitudes, 'ro')
         plt.title("Peak Detection")
-        plt.xlabel('Time')
+        plt.xlabel('Sample')
         plt.ylabel('Moving Average PPG Data')
         PATH = ppg_data_csv_file_path + '(Peaks_Plot).png'
         plt.savefig(PATH)
